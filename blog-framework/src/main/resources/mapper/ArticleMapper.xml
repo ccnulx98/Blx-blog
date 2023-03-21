@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.hestialx.mapper.ArticleMapper">
+
+    <resultMap id="BaseResultMap" type="cn.hestialx.entity.Article">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <result property="title" column="title" jdbcType="VARCHAR"/>
+        <result property="content" column="content" jdbcType="VARCHAR"/>
+        <result property="summary" column="summary" jdbcType="VARCHAR"/>
+        <result property="categoryId" column="category_id" jdbcType="BIGINT"/>
+        <result property="thumbnail" column="thumbnail" jdbcType="VARCHAR"/>
+        <result property="isTop" column="is_top" jdbcType="CHAR"/>
+        <result property="status" column="status" jdbcType="CHAR"/>
+        <result property="viewCount" column="view_count" jdbcType="BIGINT"/>
+        <result property="isComment" column="is_comment" jdbcType="CHAR"/>
+        <result property="createBy" column="create_by" jdbcType="BIGINT"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateBy" column="update_by" jdbcType="BIGINT"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+        <result property="delFlag" column="del_flag" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,title,content,
+        summary,category_id,thumbnail,
+        is_top,status,view_count,
+        is_comment,create_by,create_time,
+        update_by,update_time,del_flag
+    </sql>
+    <update id="updateViewsBatchById">
+        update sg_article
+        <set>
+            <trim prefix="view_count=case" suffix="end,">
+                <foreach collection="articles" item="item" index="index">
+                    <if test="item.viewCount != null">
+                        when id = #{item.id} then #{item.viewCount}
+                    </if>
+                </foreach>
+            </trim>
+        </set>
+        where id in
+        <trim prefix="(" suffix=")">
+            <foreach collection="articles" item="item" index="index" separator=",">
+                #{item.id}
+            </foreach>
+        </trim>
+    </update>
+    <select id="listAllHotArticle" resultType="cn.hestialx.domain.vo.HotArticleVo">
+        select id,
+               title,
+               view_count
+        from sg_article
+        where status = 0
+          and del_flag = 0
+        order by view_count desc
+    </select>
+
+    <select id="listHomePageArticle" resultType="cn.hestialx.domain.vo.ArticleHomePageVo">
+        select
+        art.id as id,art.title as title,art.summary as summary,
+        art.thumbnail as thumbnail,art.view_count as view_count,
+        art.create_time as create_time,art.category_id as category_id,cate.name as category_name from
+        (select
+        *
+        from
+        sg_article
+        <where>
+            is_top = 1 and status = 0 and del_flag = 0
+            <if test="categoryId!=null and categoryId>0">
+                and category_id = #{categoryId}
+            </if>
+        </where>
+        limit #{pageNum},#{pageSize}) as art
+        left join
+        sg_category cate
+        on
+        art.category_Id = cate.id
+        order by art.create_time desc
+    </select>
+
+    <select id="homePageArticlesNum" resultType="java.lang.Integer">
+        select
+        count(1)
+        from
+        sg_article
+        <where>
+            is_top = 1 and status = 0 and del_flag = 0
+            <if test="categoryId!=null and categoryId>0">
+                and category_id = #{categoryId}
+            </if>
+        </where>
+    </select>
+
+</mapper>
